@@ -1,0 +1,19 @@
+{{- if .Values.realtime.selfHosted -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ template "supabase.realtime.internalHost" . }}"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}
+spec:
+  ports:
+  - name: http
+    port: 4000
+    targetPort: http
+    protocol: TCP
+  selector:
+{{ include "supabase.selectorLabels" . | indent 4 }}
+    app.kubernetes.io/component: realtime
+{{- end -}}

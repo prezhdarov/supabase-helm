@@ -1,0 +1,32 @@
+{{- if eq .Values.db.type "internal" -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ template "supabase.db.migrations" . }}"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}
+data:
+  _supabase.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+
+    CREATE DATABASE _supabase WITH OWNER :pguser;
+  logs.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+
+    \c _supabase
+    create schema if not exists _analytics;
+    alter schema _analytics owner to :pguser;
+  pooler.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+
+    \c _supabase
+    create schema if not exists _supavisor;
+    alter schema _supavisor owner to :pguser;
+  realtime.sql: |
+    \set pguser `echo "$POSTGRES_USER"`
+
+    create schema if not exists _realtime;
+    alter schema _realtime owner to :pguser;
+{{- end -}}

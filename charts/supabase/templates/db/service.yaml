@@ -1,0 +1,19 @@
+{{- if eq .Values.db.type "internal" -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ template "supabase.db" . }}"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}
+spec:
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+{{ include "supabase.selectorLabels" . | indent 4 }}
+    app.kubernetes.io/component: db
+{{- end -}}

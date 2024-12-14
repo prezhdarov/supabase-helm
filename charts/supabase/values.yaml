@@ -1,0 +1,132 @@
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: ""
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+externalURL: "https://example.com"
+
+jwt:
+  exp: 3600  
+  secret: ""
+  anonKey: "1231241"
+  serviceKey: ""
+  # if using existing secret, the keys must be "secret", "anonKey" and "serviceKey"
+  existingSecret: ""
+db:
+  # if external database is used, set "type" to "external"
+  # and fill the connection information in "external" section
+  type: internal
+  internal:
+    image:
+      repository: supabase/postgres
+      tag: 15.1.1.78
+    # set the service account to be used, default if left empty
+    serviceAccountName: ""
+    # mount the service account token
+    automountServiceAccountToken: false
+    # resources:
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 100m
+    # The initial superuser password for internal database
+    password: ""
+    # if using existing secret, the key must be "dbPassword"
+    existingSecret: ""     
+  external:
+    host: "192.168.0.1"
+    port: "5432"
+    username: "postgres"
+    password: "password"
+    database: "postgres"
+    # if using existing secret, the key must be "dbPassword"
+    existingSecret: ""
+    # "disable" - No SSL
+    # "require" - Always SSL (skip verification)
+    # "verify-ca" - Always SSL (verify that the certificate presented by the
+    # server was signed by a trusted CA)
+    # "verify-full" - Always SSL (verify that the certification presented by the
+    # server was signed by a trusted CA and the server host name matches the one
+    # in the certificate)
+    sslmode: "disable"
+  # The maximum number of connections in the idle connection pool per pod (core+exporter).
+  # If it <=0, no idle connections are retained.
+  maxIdleConns: 100
+  # The maximum number of open connections to the database per pod (core+exporter).
+  # If it <= 0, then there is no limit on the number of open connections.
+  # Note: the default number of connections is 1024 for harbor's postgres.
+  maxOpenConns: 900
+  ## Additional deployment annotations
+  podAnnotations: {}
+  ## Additional deployment labels
+  podLabels: {}
+
+studio:
+  replicas: 1
+  revisionHistoryLimit: 10
+  image:
+    repository: supabase/studio
+    tag: 20240923-2e3e90c
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
+  username: supabase
+  password: ""
+  # if using existing secret, the key must be "password"
+  existingSecret: ""
+
+kong:
+  replicas: 1
+  revisionHistoryLimit: 10
+  image:
+    repository: kong
+    tag: 2.8.1
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
+  ingress:
+    enabled: true
+   
+
+auth:
+  enabled: true 
+
+meta:
+  enabled: true
+  image:
+    repository: supabase/postgres-meta
+    tag: v0.83.2
+    # resources:
+    #  requests:
+    #    memory: 256Mi
+    #    cpu: 100m
+
+rest:
+  enabled: true 
+
+realtime:
+  enabled: true
+  selfHosted: true
+
+storage:
+  enabled: false 
+
+edge:
+  enabled: false 
+
+analytics:
+  enabled: false
+
+extraObjects: []

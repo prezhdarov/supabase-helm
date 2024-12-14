@@ -1,0 +1,95 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ template "supabase.studio" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}    
+spec:
+  replicas: {{ default 1 .Values.studio.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.studio.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: studio
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: studio
+    spec:
+{{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+{{- end }}      
+      containers:
+      - name: studio
+        image: {{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DEFAULT_ORGANIZATION_NAME
+          value: {{ include "supabase.defaultOrganization" . }}
+        - name: DEFAULT_PROJECT_NAME
+          value: {{ include "supabase.defaultProject" . }}
+        - name: OPENAI_API_KEY
+          value: ""
+        - name: SUPABASE_URL
+          value: {{ include "supabase.kong.internalURL" . }}
+        - name: SUPABASE_PUBLIC_URL
+          value: {{ include "supabase.externalURL" . }}
+        - name: STUDIO_PG_META_URL
+          value: {{ include "supabase.meta.internalURL" . }}
+        - name: NEXT_PUBLIC_ENABLE_LOGS
+          value: "false"          
+        - name: NEXT_ANALYTICS_BACKEND_PROVIDER
+          value: postgres
+        - name: AUTH_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret          
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: anonKey
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: serviceKey
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+{{- if .Values.studio.resources }}
+        resources:
+{{ toYaml .Values.studio.resources | indent 10 }}
+{{- end }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/profile
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/profile
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1          

@@ -1,0 +1,132 @@
+{{- if eq .Values.db.type "internal" -}}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ template "supabase.db" . }}"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}  
+spec:
+  replicas: 1
+  serviceName: "{{ template "supabase.db" . }}"
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: db
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: db
+    spec:
+{{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+{{- end }} 
+      containers:
+      - name: db
+        image: {{ .Values.db.internal.image.repository }}:{{ .Values.db.internal.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: JWT_EXP
+          value: "{{ default "3600" .Values.jwt.exp }}"
+        - name: POSTGRES_HOST
+          value: "/var/run/postgresql"
+        - name: POSTGRES_PORT
+          value: "{{ template "supabase.db.port" }}"
+        - name: PGPORT
+          value: "{{ template "supabase.db.port" }}"          
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret
+        #- name: POSTGRES_USER
+        #  value: {{ include "supabase.db.username" . }}
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword
+        - name: PGDATABASE
+          value: {{ include "supabase.db.database" . }}
+        - name: POSTGRES_DB
+          value: {{ include "supabase.db.database" . }}
+        ports:  
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+{{- if .Values.db.internal.resources }}
+        resources:
+{{ toYaml .Values.db.internal.resources | indent 10 }}
+{{- end }}          
+        volumeMounts:
+        - name: init-scripts            
+          mountPath: /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
+          subPath: webhooks.sql                   
+        - name: init-scripts           
+          mountPath: /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+          subPath: jwt.sql  
+        - name: init-scripts          
+          mountPath: /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+          subPath: roles.sql
+        - name: migrations         
+          mountPath: /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
+          subPath: _supabase.sql          
+        - name: migrations         
+          mountPath: /docker-entrypoint-initdb.d/migrations/99-logs.sql
+          subPath: logs.sql
+        - name: migrations          
+          mountPath: /docker-entrypoint-initdb.d/migrations/99-pooler.sql
+          subPath: pooler.sql
+        - name: migrations          
+          mountPath: /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+          subPath: realtime.sql
+        - name: data
+          mountPath: /var/lib/postgresql/data
+          subPath: data
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 10 
+          periodSeconds: 5
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 2      
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 2
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: "{{ template "supabase.db.init-scripts" . }}"
+      - name: migrations
+        configMap:
+          name: "{{ template "supabase.db.migrations" . }}"                      
+  volumeClaimTemplates:
+  - metadata:
+      name: data          
+    spec:
+      #storageClassName: standard
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+{{- end -}}

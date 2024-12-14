@@ -1,0 +1,6 @@
+apiVersion: v2
+name: supabase
+description: Helm chart to deploy supabase or at least try.
+type: application
+version: 1.24.09
+appVersion: 1.24.09

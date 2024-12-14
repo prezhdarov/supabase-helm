@@ -1,0 +1,99 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ template "supabase.kong" . }}"
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }}   
+spec:
+  replicas: {{ default 1 .Values.kong.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.kong.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: kong
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: kong
+    spec:
+{{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+{{- end }}
+      initContainers:
+      - name: config
+        image: {{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}
+        imagePullPolicy: IfNotPresent      
+        command: ["/bin/bash", "-c"]
+        args: 
+        - |
+          echo "Generating config with env vars."
+          eval "echo \"$$(cat /etc/kong.yml)\"" > /home/kong/kong.yml
+          echo "Config file generated"
+        env:
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: anonKey
+        - name: SUPABASE_SERVICE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: serviceKey
+        - name: DASHBOARD_USERNAME
+          value: {{ include "supabase.studio.username" . }}
+        - name: DASHBOARD_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.studio.secretRef" . }}
+              key: password  
+{{- if .Values.kong.resources }}
+        resources:
+{{ toYaml .Values.kong.resources | indent 10 }}
+{{- end }}                     
+        volumeMounts:
+        - name: running-config            
+          mountPath: /home/kong
+        - name: startup-config            
+          mountPath: /etc/kong.yml
+          subPath: kong.yml                          
+      containers:
+      - name: kong
+        image: {{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: KONG_DATABASE
+          value: "off"
+        - name: KONG_DECLARATIVE_CONFIG
+          value: /home/kong/kong.yml
+        - name: KONG_DNS_ORDER
+          value: LAST,A,CNAME
+        - name: KONG_PLUGINS
+          value: request-transformer,cors,key-auth,acl,basic-auth
+        - name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE
+          value: 160k
+        - name: KONG_NGINX_PROXY_PROXY_BUFFERS
+          value: 64 160k              
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+{{- if .Values.kong.resources }}
+        resources:
+{{ toYaml .Values.kong.resources | indent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: running-config            
+          mountPath: /home/kong/kong.yml
+          subPath: kong.yml              
+      volumes:
+      - name: running-config
+        emptyDir: {}
+      - name: startup-config
+        configMap:
+          name: "{{ template "supabase.kong.config" . }}"
