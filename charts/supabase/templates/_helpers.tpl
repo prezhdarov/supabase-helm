@@ -177,6 +177,10 @@ Create the name of the service account to use
   {{- printf "%s-config" (include "supabase.kong" .) }}
 {{- end -}}
 
+{{- define "supabase.kong.tlsSecret" -}}
+  {{- printf "%s-tls" (include "supabase.kong" .) }}
+{{- end -}}
+
 {{- define "supabase.auth" -}}
   {{- printf "%s-auth" (include "supabase.fullname" .) -}}
 {{- end -}}

@@ -94,7 +94,14 @@ kong:
   #    memory: 256Mi
   #    cpu: 100m
   ingress:
-    enabled: true
+    enabled: false
+    class: ""
+    tls:
+      enabled: false 
+      secret: ""
+    hosts: []
+    annotations: {}
+    
    
 auth:
   enabled: true

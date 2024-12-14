@@ -1,4 +1,4 @@
-{{- if .Values.kong.ingress.enabled -}}
+{{- if and .Values.kong.ingress.enabled .Values.kong.ingress.hosts -}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -6,24 +6,32 @@ metadata:
   name: {{ template "supabase.kong" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-{{ include "supabase.labels" . | indent 4 }}    
+{{ include "supabase.labels" . | indent 4 }}
+{{- if .Values.kong.ingress.annotations }} 
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt
+{{ toYaml .Values.kong.ingress.annotations | indent 4 }}
+{{- end }}
 spec:
-  ingressClassName: ingress-nginx
+{{- if .Values.kong.ingress.class }}
+  ingressClassName: {{ .Values.kong.ingress.class }}
+{{- end }}
+{{- if .Values.kong.ingress.tls.enabled }}  
   tls:
   - hosts:
-    - supabase-dpp-preprod.bcode.cloud
-    secretName: supabase-dpp-preprod.bcode.cloud-tls
+{{ toYaml .Values.kong.ingress.hosts | indent 4 }}
+    secretName: {{ .Values.kong.ingress.tls.secret  | default (include "supabase.kong.tlsSecret" .) }}
+{{- end }}
   rules:
-  - host: supabase-dpp-preprod.bcode.cloud
+{{- range .Values.kong.ingress.hosts }}
+  - host: {{ . }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ template "supabase.kong" . }}
+            name: {{ include "supabase.kong" $ }}
             port:
               number: 8000
+{{- end }}              
 {{- end -}}
