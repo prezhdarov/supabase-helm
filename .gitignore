@@ -1,0 +1,14 @@
+# Environments
+.DS_Store
+local
+.env
+.venv
+test/
+old/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.json
+
