@@ -1,0 +1,126 @@
+{{- if .Values.realtime.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+metadata:
+  name: {{ template "supabase.realtime" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }} 
+spec:
+  replicas: {{ default 1 .Values.realtime.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.realtime.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: realtime
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: realtime
+    spec:
+{{- if or .Values.serviceAccount.create .Values.realtime.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.realtime.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.realtime.automountServiceAccountToken | default false }}
+{{- end }}
+{{- if eq .Values.db.type "internal" }}
+      initContainers:
+      - name: db-ready
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+          echo "Waiting for database to start..."
+          sleep 2
+          done
+        - echo "Database is ready"        
+        env:
+        - name: DB_HOST
+          value: {{ template "supabase.db" . }}
+        - name: DB_PORT
+          value: "{{ template "supabase.db.port" . }}"
+        - name: DB_USER
+          value: {{ template "supabase.db.username" . }}
+{{- end }}
+      containers:
+      - name: rest
+        image: {{ .Values.realtime.image.repository }}:{{ .Values.realtime.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: APP_NAME 
+          value: {{ template "supabase.fullname" . }}
+        - name: PORT
+          value: "4000"          
+        - name: ERL_AFLAGS 
+          value: {{ .Values.realtime.erlAFlags }}
+        - name: DNS_NODES 
+          value: {{ .Values.realtime.dnsNodes | default "\"''\"" }}
+        - name: RLIMIT_NOFILE
+          value: "{{ .Values.realtime.rlimitNoFile }}"
+        - name: SEED_SELF_HOST
+          value: "{{ .Values.realtime.selfHosted | toString }}"
+        - name: API_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.realtime.secretRef" . }}
+              key: secretKeyBase                         
+        - name: DB_AFTER_CONNECT_QUERY
+          value: "{{ .Values.realtime.db.afterConnectQuery }}"
+        - name: DB_ENC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.realtime.db.secretRef" . }}
+              key: dbEncryptionKey 
+        - name: DB_HOST
+          value: {{ template "supabase.db" . }}
+        - name: DB_PORT
+          value: "{{ template "supabase.db.port" . }}" 
+        - name: DB_NAME
+          value: {{ template "supabase.db.database" . }}         
+        - name: DB_USER
+          value:  {{ .Values.realtime.db.username }}   
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword          
+        ports:
+        - name: http
+          containerPort: 4000
+          protocol: TCP
+{{- if .Values.realtime.resources }}
+        resources:
+{{ toYaml .Values.realtime.resources | indent 10 }}
+{{- end }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+{{- end }}          

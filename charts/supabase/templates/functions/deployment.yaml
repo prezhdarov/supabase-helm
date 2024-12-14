@@ -1,0 +1,82 @@
+{{- if .Values.functions.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "supabase.functions" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }} 
+spec:
+  replicas: {{ default 1 .Values.functions.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.functions.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: functions
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: functions
+    spec:
+{{- if or .Values.serviceAccount.create .Values.functions.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.functions.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.functions.automountServiceAccountToken | default false }}
+{{- end }}
+      containers:
+      - name: functions
+        image: {{ .Values.functions.image.repository }}:{{ .Values.functions.image.tag }}
+        imagePullPolicy: IfNotPresent
+        args:
+        - start
+        - --main-service
+        - /home/deno/functions/main        
+        env:
+        - name: VERIFY_JWT
+          value: "{{ .Values.functions.verifyJWT | toString }}"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret
+        - name: SUPABASE_ANON_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: anonKey
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: serviceKey           
+        - name: SUPABASE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword                   
+        - name: SUPABASE_DB_URL
+          value: postgres://{{ template "supabase.db.username" . }}:$(SUPABASE_DB_PASSWORD)@{{ template "supabase.db" . }}:{{ template "supabase.db.port" . }}/{{ template "supabase.db.database" . }}?sslmode={{ template "supabase.db.ssl" . }}                    
+        ports:
+        - name: http
+          containerPort: 9000
+          protocol: TCP
+{{- if .Values.functions.resources }}
+        resources:
+{{ toYaml .Values.functions.resources | indent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: function-main            
+          mountPath: /home/deno/functions/main
+        - name: function-hello            
+          mountPath: /home/deno/functions/hello          
+      volumes:
+      - name: function-main
+        configMap:
+          name: "{{ template "supabase.functions.main" . }}"    
+      - name: function-hello
+        configMap:
+          name: "{{ template "supabase.functions.hello" . }}"             
+{{- end }}          

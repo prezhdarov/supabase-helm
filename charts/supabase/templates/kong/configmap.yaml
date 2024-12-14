@@ -44,6 +44,7 @@ data:
     ### API Routes
     ###
     services:
+{{ if .Values.auth.enabled }}    
       ## Open Auth routes
       - name: auth-v1-open
         url: http://{{ include "supabase.auth" . }}:9999/verify
@@ -93,7 +94,8 @@ data:
               allow:
                 - admin
                 - anon
-
+{{ end }}                
+{{ if .Values.rest.enabled }}
       ## Secure REST routes
       - name: rest-v1
         _comment: 'PostgREST: /rest/v1/* -> http://{{ include "supabase.rest" . }}:3000/*'
@@ -140,8 +142,8 @@ data:
               allow:
                 - admin
                 - anon
-
-{{- if .Values.realtime.enabled -}}
+{{ end }}                
+{{ if .Values.realtime.enabled }}
       ## Secure Realtime routes
       - name: realtime-v1-ws
         _comment: 'Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.internalHost" . }}:4000/socket/*'
@@ -183,8 +185,8 @@ data:
               allow:
                 - admin
                 - anon
-{{- end -}}    
-{{- if .Values.storage.enabled -}}            
+{{ end }}                
+{{ if .Values.storage.enabled }}           
       ## Storage routes: the storage server manages its own auth
       - name: storage-v1
         _comment: 'Storage: /storage/v1/* -> http://{{ include "supabase.storage" . }}:5000/*'
@@ -196,12 +198,12 @@ data:
               - /storage/v1/
         plugins:
           - name: cors
-{{- end -}} 
-{{- if .Values.edge.enabled -}}
+{{ end }}                
+{{ if .Values.functions.enabled }}
       ## Edge Functions routes
       - name: functions-v1
-        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.edge" . }}:9000/*'
-        url: http://{{ include "supabase.edge" . }}:9000/
+        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions" . }}:9000/*'
+        url: http://{{ include "supabase.functions" . }}:9000/
         routes:
           - name: functions-v1-all
             strip_path: true
@@ -209,8 +211,8 @@ data:
               - /functions/v1/
         plugins:
           - name: cors
-{{- end -}}           
-{{- if .Values.analytics.enabled -}}
+{{ end }}                
+{{ if .Values.analytics.enabled }}
       ## Analytics routes
       - name: analytics-v1
         _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics" . }}:4000/*'
@@ -220,8 +222,8 @@ data:
             strip_path: true
             paths:
               - /analytics/v1/
-{{- end -}}               
-
+{{ end }}                
+{{ if .Values.meta.enabled }}
       ## Secure Database routes
       - name: meta
         _comment: 'pg-meta: /pg/* -> http://{{ include "supabase.meta" . }}:8080/*'
@@ -240,7 +242,7 @@ data:
               hide_groups_header: true
               allow:
                 - admin
-
+{{ end }}                
       ## Protected Dashboard - catch all remaining routes
       - name: dashboard
         _comment: 'Studio: /* -> http://{{ include "supabase.studio" . }}:3000/*'

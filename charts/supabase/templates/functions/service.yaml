@@ -1,19 +1,19 @@
-{{- if .Values.realtime.enabled -}}
+{{- if .Values.functions.enabled -}}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "supabase.realtime" . }}
+  name: {{ template "supabase.functions" . }}
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "supabase.labels" . | indent 4 }}
 spec:
   ports:
   - name: http
-    port: 4000
+    port: 9000
     targetPort: http
     protocol: TCP
   selector:
 {{ include "supabase.selectorLabels" . | indent 4 }}
-    app.kubernetes.io/component: realtime
+    app.kubernetes.io/component: functions
 {{- end }}    

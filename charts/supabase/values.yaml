@@ -97,6 +97,7 @@ kong:
     enabled: true
    
 auth:
+  enabled: true
   image:
     repository: supabase/gotrue
     tag: v2.158.1
@@ -140,6 +141,7 @@ auth:
 
 
 meta:
+  enabled: true
   image:
     repository: supabase/postgres-meta
     tag: v0.83.2
@@ -155,6 +157,7 @@ meta:
   #    cpu: 100m
 
 rest:
+  enabled: true
   image: 
     repository: postgrest/postgrest
     tag: v12.2.0
@@ -174,14 +177,52 @@ rest:
     schemas: public,storage,graphql_public
 
 realtime:
-  enabled: false
+  enabled: true
+  image: 
+    repository: supabase/realtime
+    tag: v2.30.34
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
   selfHosted: true
+  # Set this to "-proto_dist inet6_tcp" when using on ipv6 network
+  erlAFlags: -proto_dist inet_tcp
+  dnsNodes: ""
+  rlimitNoFile: 1000
+  secretKeyBase: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+  existingSecret: ""
+  db:
+    username: supabase_admin
+    encryptionKey: supabaserealtime
+    existingSecret: ""
+    afterConnectQuery: SET search_path TO _realtime
 
 storage:
   enabled: false 
 
-edge:
-  enabled: false 
+functions:
+  enabled: true
+  image: 
+    repository: supabase/edge-runtime
+    tag: v1.58.3
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
+  verifyJWT: false 
 
 analytics:
   enabled: false

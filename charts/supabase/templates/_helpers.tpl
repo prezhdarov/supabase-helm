@@ -229,6 +229,22 @@ Create the name of the service account to use
   {{- printf "%s-realtime" (include "supabase.fullname" .) -}}
 {{- end -}}
 
+{{- define "supabase.realtime.secretKeyBase" -}}
+  {{- .Values.realtime.secretKeyBase | b64enc -}}
+{{- end -}}
+
+{{- define "supabase.realtime.secretRef" -}}
+  {{- default (include "supabase.secret" .) .Values.realtime.existingSecret }}
+{{- end -}}
+
+{{- define "supabase.realtime.db.encryptionKey" -}}
+  {{- .Values.realtime.db.encryptionKey | b64enc -}}
+{{- end -}}
+
+{{- define "supabase.realtime.db.secretRef" -}}
+  {{- default (include "supabase.secret" .) .Values.realtime.db.existingSecret }}
+{{- end -}}
+
 {{- define "supabase.realtime.internalHost" -}}
   {{- if .Values.realtime.selfHosted -}}
     {{- printf "realtime-dev" -}}
@@ -241,8 +257,16 @@ Create the name of the service account to use
   {{- printf "%s-storage" (include "supabase.fullname" .) -}}
 {{- end -}}
 
-{{- define "supabase.edge" -}}
-  {{- printf "%s-edge" (include "supabase.fullname" .) -}}
+{{- define "supabase.functions" -}}
+  {{- printf "%s-functions" (include "supabase.fullname" .) -}}
+{{- end -}}
+
+{{- define "supabase.functions.main" -}}
+  {{- printf "%s-main" (include "supabase.functions" .) -}}
+{{- end -}}
+
+{{- define "supabase.functions.hello" -}}
+  {{- printf "%s-hello" (include "supabase.functions" .) -}}
 {{- end -}}
 
 {{- define "supabase.analytics" -}}

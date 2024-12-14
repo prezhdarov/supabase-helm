@@ -1,4 +1,4 @@
-{{- if .Values.realtime.selfHosted -}}
+{{- if and .Values.realtime.enabled .Values.realtime.selfHosted -}}
 ---
 apiVersion: v1
 kind: Service

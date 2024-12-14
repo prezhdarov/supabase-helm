@@ -1,0 +1,32 @@
+---
+name: helm-push-ghcr
+permissions:
+  packages: write
+  contents: read
+on:
+  push:
+    tags:
+    - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+env:
+  CHART_NAME: supabase
+  IMAGE_TAG: ${{ github.ref_name }}
+jobs:
+
+  build-helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout
+      - name: helm lint
+        run: |
+          helm lint .
+      - name: helm login
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u $ --password-stdin
+      - name: helm package
+        run: |
+          helm package . --version $IMAGE_TAG
+      - name: helm push
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          helm push $CHART_NAME-$IMAGE_TAG.tgz oci://ghcr.io/${{ github.repository_owner }}
