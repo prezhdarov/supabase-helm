@@ -2,28 +2,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "supabase.meta" . }}
+metadata:
+  name: {{ template "supabase.rest" . }}
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "supabase.labels" . | indent 4 }} 
 spec:
-  replicas: {{ default 1 .Values.meta.replicas }}
-  revisionHistoryLimit: {{ default 10 .Values.meta.revisionHistoryLimit }}
+  replicas: {{ default 1 .Values.rest.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.rest.revisionHistoryLimit }}
   selector:
     matchLabels:
 {{ include "supabase.selectorLabels" . | indent 6 }}
-      app.kubernetes.io/component: meta
+      app.kubernetes.io/component: rest
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
 {{ include "supabase.selectorLabels" . | indent 8 }}
-        app.kubernetes.io/component: meta
+        app.kubernetes.io/component: rest
     spec:
-{{- if or .Values.serviceAccount.create .Values.meta.serviceAccountName }}
-      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.meta.serviceAccountName }}
-      automountServiceAccountToken: {{ .Values.meta.automountServiceAccountToken | default false }}
+{{- if or .Values.serviceAccount.create .Values.rest.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.rest.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.rest.automountServiceAccountToken | default false }}
 {{- end }}
 {{- if eq .Values.db.type "internal" }}
       initContainers:
@@ -46,33 +47,38 @@ spec:
         - name: DB_USER
           value: {{ template "supabase.db.username" . }}
 {{- end }}
-      containers:      
-      - name: meta
-        image: {{ .Values.meta.image.repository }}:{{ .Values.meta.image.tag }}
+      containers:
+      - name: rest
+        image: {{ .Values.rest.image.repository }}:{{ .Values.rest.image.tag }}
         imagePullPolicy: IfNotPresent
         env:
-        - name: PG_META_PORT
-          value: "8080"
-        - name: PG_META_DB_HOST
-          value: {{ template "supabase.db" . }}
-        - name: PG_META_DB_PORT
-          value: "{{ template "supabase.db.port" . }}"
-        - name: PG_META_DB_USER
-          value: {{ template "supabase.db.username" . }}
-        - name: PG_META_DB_PASSWORD
+        - name: PGRST_APP_SETTINGS_JWT_EXP
+          value: "{{ default "3600" .Values.jwt.exp }}"
+        - name: PGRST_APP_SETTINGS_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret         
+        - name: PGRST_DB_ANON_ROLE
+          value: {{ .Values.rest.db.anonRole }}
+        - name: PGRST_DB_SCHEMAS
+          value: {{ .Values.rest.db.schemas }}          
+        - name: PGRST_DB_USE_LEGACY_GUCS
+          value: "false"
+        - name: PGRST_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ include "supabase.db.secretRef" . }}
               key: dbPassword
-        - name: PG_META_DB_NAME
-          value: {{ template "supabase.db.database" . }}
+        - name: PGRST_DB_URI
+          value: postgres://{{ .Values.rest.db.username }}:$(PGRST_DB_PASSWORD)@{{ template "supabase.db" . }}:{{ template "supabase.db.port" . }}/{{ template "supabase.db.database" . }}?sslmode={{ template "supabase.db.ssl" . }}      
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 3000
           protocol: TCP
-{{- if .Values.meta.resources }}
+{{- if .Values.rest.resources }}
         resources:
-{{ toYaml .Values.meta.resources | indent 10 }}
+{{ toYaml .Values.rest.resources | indent 10 }}
 {{- end }}
         livenessProbe:
           failureThreshold: 3
@@ -93,4 +99,4 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 5
           successThreshold: 1
-          timeoutSeconds: 1 
+          timeoutSeconds: 1            

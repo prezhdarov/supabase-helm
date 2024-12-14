@@ -18,9 +18,9 @@ externalURL: "https://example.com"
 
 jwt:
   exp: 3600  
-  secret: ""
-  anonKey: "1231241"
-  serviceKey: ""
+  secret: "your-super-secret-jwt-token-with-at-least-32-characters-long"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+  serviceKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
   # if using existing secret, the keys must be "secret", "anonKey" and "serviceKey"
   existingSecret: ""
 db:
@@ -40,7 +40,7 @@ db:
     #    memory: 256Mi
     #    cpu: 100m
     # The initial superuser password for internal database
-    password: ""
+    password: "your-super-secret-and-long-postgres-password"
     # if using existing secret, the key must be "dbPassword"
     existingSecret: ""     
   external:
@@ -59,39 +59,36 @@ db:
     # server was signed by a trusted CA and the server host name matches the one
     # in the certificate)
     sslmode: "disable"
-  # The maximum number of connections in the idle connection pool per pod (core+exporter).
-  # If it <=0, no idle connections are retained.
-  maxIdleConns: 100
-  # The maximum number of open connections to the database per pod (core+exporter).
-  # If it <= 0, then there is no limit on the number of open connections.
-  # Note: the default number of connections is 1024 for harbor's postgres.
-  maxOpenConns: 900
-  ## Additional deployment annotations
-  podAnnotations: {}
-  ## Additional deployment labels
-  podLabels: {}
 
 studio:
-  replicas: 1
-  revisionHistoryLimit: 10
   image:
     repository: supabase/studio
     tag: 20240923-2e3e90c
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
   # resources:
   #  requests:
   #    memory: 256Mi
   #    cpu: 100m
   username: supabase
-  password: ""
+  password: "this_password_is_insecure_and_should_be_updated"
   # if using existing secret, the key must be "password"
   existingSecret: ""
 
 kong:
-  replicas: 1
-  revisionHistoryLimit: 10
   image:
     repository: kong
     tag: 2.8.1
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
   # resources:
   #  requests:
   #    memory: 256Mi
@@ -99,25 +96,85 @@ kong:
   ingress:
     enabled: true
    
-
 auth:
-  enabled: true 
+  image:
+    repository: supabase/gotrue
+    tag: v2.158.1
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
+  additionalDomains: ""
+  disableSignup: false
+  jwt:
+    adminRoles: service_role
+    aud: authenticated
+    defaultGroup: authenticated
+  db:
+    username: supabase_auth_admin
+  email:
+    enabled: false  
+    autoConfirm: false 
+    anonymousUsers: false
+    adminEmail: admin@example.com
+    senderName: fake_sender
+    host: supabase-mail
+    port: 2500
+    username: fake_mail_user
+    password: fake_mail_password
+    existingSecret: ""
+    #urlPaths:
+    #  invite: /auth/v1/verify
+    #  recovery: /auth/v1/verify
+    #  confirmation: /auth/v1/verify
+    #  change: /auth/v1/verify
+  phone:
+    enabled: false 
+    autoConfirm: false
+
 
 meta:
-  enabled: true
   image:
     repository: supabase/postgres-meta
     tag: v0.83.2
-    # resources:
-    #  requests:
-    #    memory: 256Mi
-    #    cpu: 100m
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
 
 rest:
-  enabled: true 
+  image: 
+    repository: postgrest/postgrest
+    tag: v12.2.0
+  # set the service account to be used, default if left empty
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false     
+  replicas: 1
+  revisionHistoryLimit: 10  
+  # resources:
+  #  requests:
+  #    memory: 256Mi
+  #    cpu: 100m
+  db:    
+    username: authenticator
+    anonRole: anon
+    schemas: public,storage,graphql_public
 
 realtime:
-  enabled: true
+  enabled: false
   selfHosted: true
 
 storage:

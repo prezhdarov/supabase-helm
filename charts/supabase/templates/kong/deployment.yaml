@@ -2,8 +2,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ template "supabase.kong" . }}"
-  namespace: {{ .Release.Namespace | quote }}
+  name: {{ template "supabase.kong" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "supabase.labels" . | indent 4 }}   
 spec:
@@ -21,8 +21,9 @@ spec:
 {{ include "supabase.selectorLabels" . | indent 8 }}
         app.kubernetes.io/component: kong
     spec:
-{{- if .Values.serviceAccount.create }}
-      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
+{{- if or .Values.serviceAccount.create .Values.kong.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.kong.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.kong.automountServiceAccountToken | default false }}
 {{- end }}
       initContainers:
       - name: config
@@ -87,6 +88,26 @@ spec:
         resources:
 {{ toYaml .Values.kong.resources | indent 10 }}
 {{- end }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1 
         volumeMounts:
         - name: running-config            
           mountPath: /home/kong/kong.yml

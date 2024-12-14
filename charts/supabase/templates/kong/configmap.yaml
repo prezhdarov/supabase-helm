@@ -40,7 +40,6 @@ data:
         username: $DASHBOARD_USERNAME
         password: $DASHBOARD_PASSWORD
         
-{{- if .Values.auth.enabled -}}
     ###
     ### API Routes
     ###
@@ -94,8 +93,7 @@ data:
               allow:
                 - admin
                 - anon
-{{- end -}}
-{{- if .Values.rest.enabled -}}
+
       ## Secure REST routes
       - name: rest-v1
         _comment: 'PostgREST: /rest/v1/* -> http://{{ include "supabase.rest" . }}:3000/*'
@@ -142,7 +140,7 @@ data:
               allow:
                 - admin
                 - anon
-{{- end -}}
+
 {{- if .Values.realtime.enabled -}}
       ## Secure Realtime routes
       - name: realtime-v1-ws
@@ -223,7 +221,7 @@ data:
             paths:
               - /analytics/v1/
 {{- end -}}               
-{{- if .Values.meta.enabled -}}
+
       ## Secure Database routes
       - name: meta
         _comment: 'pg-meta: /pg/* -> http://{{ include "supabase.meta" . }}:8080/*'
@@ -242,7 +240,7 @@ data:
               hide_groups_header: true
               allow:
                 - admin
-{{- end -}} 
+
       ## Protected Dashboard - catch all remaining routes
       - name: dashboard
         _comment: 'Studio: /* -> http://{{ include "supabase.studio" . }}:3000/*'

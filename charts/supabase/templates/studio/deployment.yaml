@@ -21,9 +21,10 @@ spec:
 {{ include "supabase.selectorLabels" . | indent 8 }}
         app.kubernetes.io/component: studio
     spec:
-{{- if .Values.serviceAccount.create }}
-      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
-{{- end }}      
+{{- if or .Values.serviceAccount.create .Values.studio.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.studio.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.studio.automountServiceAccountToken | default false }}
+{{- end }}   
       containers:
       - name: studio
         image: {{ .Values.studio.image.repository }}:{{ .Values.studio.image.tag }}

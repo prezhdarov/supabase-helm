@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "supabase.studio" . }}
+  name: {{ template "supabase.rest" . }}
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "supabase.labels" . | indent 4 }}
@@ -14,4 +14,4 @@ spec:
     protocol: TCP
   selector:
 {{ include "supabase.selectorLabels" . | indent 4 }}
-    app.kubernetes.io/component: studio
+    app.kubernetes.io/component: rest

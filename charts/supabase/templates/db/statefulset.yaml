@@ -3,13 +3,13 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: "{{ template "supabase.db" . }}"
-  namespace: {{ .Release.Namespace | quote }}
+  name: {{ template "supabase.db" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "supabase.labels" . | indent 4 }}  
 spec:
   replicas: 1
-  serviceName: "{{ template "supabase.db" . }}"
+  serviceName: {{ template "supabase.db" . }}
   selector:
     matchLabels:
 {{ include "supabase.selectorLabels" . | indent 6 }}
@@ -20,9 +20,10 @@ spec:
 {{ include "supabase.selectorLabels" . | indent 8 }}
         app.kubernetes.io/component: db
     spec:
-{{- if .Values.serviceAccount.create }}
-      serviceAccountName: {{ include "supabase.serviceAccountName" . }}
-{{- end }} 
+{{- if or .Values.serviceAccount.create .Values.db.internal.serviceAccountName }}
+      serviceAccountName: {{ .Values.db.internal.serviceAccountName | default (include "supabase.serviceAccountName" .) }}
+      automountServiceAccountToken: {{ .Values.db.internal.automountServiceAccountToken | default false }}
+{{- end }}
       containers:
       - name: db
         image: {{ .Values.db.internal.image.repository }}:{{ .Values.db.internal.image.tag }}
@@ -41,8 +42,6 @@ spec:
             secretKeyRef:
               name: {{ include "supabase.jwt.secretRef" . }}
               key: secret
-        #- name: POSTGRES_USER
-        #  value: {{ include "supabase.db.username" . }}
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:

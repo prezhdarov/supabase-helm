@@ -83,13 +83,13 @@ Create the name of the service account to use
 
 
 {{- define "supabase.jwt.secret" -}}
-  {{- default "your-super-secret-jwt-token-with-at-least-32-characters-long" .Values.jwt.secret | b64enc -}}
+  {{- .Values.jwt.secret | b64enc -}}
 {{- end -}}
 {{- define "supabase.jwt.anonKey" -}}
-  {{- default "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" .Values.jwt.anonKey | b64enc -}}
+  {{- .Values.jwt.anonKey | b64enc -}}
 {{- end -}}
 {{- define "supabase.jwt.serviceKey" -}}
-  {{- default "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" .Values.jwt.serviceKey | b64enc -}}
+  {{- .Values.jwt.serviceKey | b64enc -}}
 {{- end -}}
 
 
@@ -105,6 +105,13 @@ Create the name of the service account to use
   {{- end -}}
 {{- end -}}
 
+{{- define "supabase.db.ssl" -}}
+  {{- if eq .Values.db.type "internal" -}}
+    {{- printf "%s" "disable" -}}
+  {{- else -}}
+    {{- .Values.db.external.sslmode -}}
+  {{- end -}}
+{{- end -}} 
 
 {{- define "supabase.db.init-scripts" -}}
   {{- printf "%s-init-scripts" (include "supabase.db" .) -}}
@@ -132,9 +139,9 @@ Create the name of the service account to use
 
 {{- define "supabase.db.password" -}}
   {{- if eq .Values.db.type "internal" -}}
-    {{- default "your-super-secret-and-long-postgres-password" .Values.db.internal.password | b64enc -}}
+    {{- .Values.db.internal.password | b64enc -}}
   {{- else -}}
-    {{- default "your-super-secret-and-long-postgres-password" .Values.db.external.password | b64enc -}}
+    {{- .Values.db.external.password | b64enc -}}
   {{- end -}}
 {{- end -}}
 
@@ -151,7 +158,7 @@ Create the name of the service account to use
 {{- end -}}
 
 {{- define "supabase.studio.password" -}}
-  {{- default "this_password_is_insecure_and_should_be_updated" .Values.studio.password | b64enc -}}
+  {{- .Values.studio.password | b64enc -}}
 {{- end -}}
 
 {{- define "supabase.studio.secretRef" -}}
@@ -172,6 +179,46 @@ Create the name of the service account to use
 
 {{- define "supabase.auth" -}}
   {{- printf "%s-auth" (include "supabase.fullname" .) -}}
+{{- end -}}
+
+{{- define "supabase.auth.email.secretRef" -}}
+  {{- default (include "supabase.secret" .) .Values.auth.email.existingSecret }}
+{{- end -}}
+
+{{- define "supabase.auth.email.password" -}}
+  {{- .Values.auth.email.password | b64enc -}}
+{{- end -}}
+
+{{- define "supabase.auth.email.paths.invite" -}}
+  {{- if .Values.auth.email.urlPaths -}}
+    {{- .Values.auth.email.urlPaths.invite | default "/auth/v1/verify" -}}
+  {{- else -}}
+    {{- print "/auth/v1/verify" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "supabase.auth.email.paths.recovery" -}}
+  {{- if .Values.auth.email.urlPaths -}}
+    {{- .Values.auth.email.urlPaths.recovery | default "/auth/v1/verify" -}}
+  {{- else -}}
+    {{- print "/auth/v1/verify" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "supabase.auth.email.paths.confirmation" -}}
+  {{- if .Values.auth.email.urlPaths -}}
+    {{- .Values.auth.email.urlPaths.conmfirmation | default "/auth/v1/verify" -}}
+  {{- else -}}
+    {{- print "/auth/v1/verify" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "supabase.auth.email.paths.change" -}}
+  {{- if .Values.auth.email.urlPaths -}}
+    {{- .Values.auth.email.urlPaths.change | default "/auth/v1/verify" -}}
+  {{- else -}}
+    {{- print "/auth/v1/verify" -}}
+  {{- end -}}
 {{- end -}}
 
 {{- define "supabase.rest" -}}
