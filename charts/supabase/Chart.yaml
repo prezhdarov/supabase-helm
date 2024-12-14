@@ -4,3 +4,4 @@ description: Helm chart to deploy supabase or at least try.
 type: application
 version: 1.24.09
 appVersion: 1.24.09
+icon: https://avatars.githubusercontent.com/u/54469796?s=280&v=4

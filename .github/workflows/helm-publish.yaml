@@ -18,13 +18,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: helm lint
         run: |
-          helm lint .
+          helm lint charts/supabase
       - name: helm login
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u $ --password-stdin
       - name: helm package
         run: |
-          helm package . --version $IMAGE_TAG
+          helm package charts/supabase --version $IMAGE_TAG
       - name: helm push
         if: ${{ github.event_name == 'push' }}
         run: |
