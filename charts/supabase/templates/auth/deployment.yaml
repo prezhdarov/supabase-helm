@@ -1,0 +1,153 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+metadata:
+  name: {{ template "supabase.auth" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "supabase.labels" . | indent 4 }} 
+spec:
+  replicas: {{ default 1 .Values.auth.replicas }}
+  revisionHistoryLimit: {{ default 10 .Values.auth.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+{{ include "supabase.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: auth
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+{{ include "supabase.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: auth
+    spec:
+{{- if or .Values.serviceAccount.create .Values.auth.serviceAccountName }}
+      serviceAccountName: {{ default (include "supabase.serviceAccountName" .) .Values.auth.serviceAccountName }}
+      automountServiceAccountToken: {{ .Values.auth.automountServiceAccountToken | default false }}
+{{- end }}
+{{- if eq .Values.db.type "internal" }}
+      initContainers:
+      - name: db-ready
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+          echo "Waiting for database to start..."
+          sleep 2
+          done
+        - echo "Database is ready"        
+        env:
+        - name: DB_HOST
+          value: {{ template "supabase.db" . }}
+        - name: DB_PORT
+          value: "{{ template "supabase.db.port" . }}"
+        - name: DB_USER
+          value: {{ template "supabase.db.username" . }}
+{{- end }}
+      containers:
+      - name: rest
+        image: {{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: API_EXTERNAL_URL
+          value: {{ include "supabase.externalURL" . }}
+        - name: GOTRUE_API_HOST
+          value: "0.0.0.0"
+        - name: GOTRUE_API_PORT
+          value: "9999"
+        - name: GOTRUE_SITE_URL
+          value: {{ include "supabase.externalURL" . }}       
+        - name: GOTRUE_URI_ALLOW_LIST
+          value: {{ default "\"*\"" .Values.auth.additionalDomains }}
+        - name: GOTRUE_DISABLE_SIGNUP
+          value: "{{ .Values.auth.disableSignup | toString }}"
+        - name: GOTRUE_JWT_ADMIN_ROLES
+          value: {{ .Values.auth.jwt.adminRoles }}
+        - name: GOTRUE_JWT_AUD
+          value: {{ .Values.auth.jwt.aud }}
+        - name: GOTRUE_JWT_DEFAULT_GROUP_NAME
+          value: {{ .Values.auth.jwt.defaultGroup }}
+        - name: GOTRUE_JWT_EXP
+          value: "{{ default "3600" .Values.jwt.exp }}"
+        - name: GOTRUE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret
+        - name: GOTRUE_DB_DRIVER
+          value: postgres
+        - name: GOTRUE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.db.secretRef" . }}
+              key: dbPassword                    
+        - name: GOTRUE_DB_DATABASE_URL
+          value: postgres://{{ .Values.auth.db.username }}:$(GOTRUE_DB_PASSWORD)@{{ template "supabase.db" . }}:{{ template "supabase.db.port" . }}/{{ template "supabase.db.database" . }}?sslmode={{ template "supabase.db.ssl" . }}      
+        - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+          value: "{{ .Values.auth.email.enabled | toString }}"
+{{- if .Values.auth.email.enabled }}             
+        - name: GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED
+          value: "{{ .Values.auth.email.anonymousUsers | default false | toString }}"
+        - name: GOTRUE_MAILER_AUTOCONFIRM
+          value: "{{ .Values.auth.email.autoConfirm | default false | toString }}"
+        - name: GOTRUE_SMTP_ADMIN_EMAIL
+          value: {{ .Values.auth.email.adminEmail | default "admin@example.com" }}
+        - name: GOTRUE_SMTP_SENDER_NAME
+          value: {{ .Values.auth.email.senderName | default "fake_sender" }}          
+        - name: GOTRUE_SMTP_HOST
+          value: {{ .Values.auth.email.host }}
+        - name: GOTRUE_SMTP_PORT
+          value: "{{ .Values.auth.email.port }}"
+        - name: GOTRUE_SMTP_USER
+          value: {{ .Values.auth.email.user }}
+        - name: GOTRUE_SMTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.auth.email.secretRef" . }}
+              key: smtpPassword          
+        - name: GOTRUE_MAILER_URLPATHS_INVITE
+          value: {{ template "supabase.auth.email.paths.invite" . }}
+        - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
+          value: {{ template "supabase.auth.email.paths.confirmation" . }}
+        - name: GOTRUE_MAILER_URLPATHS_RECOVERY
+          value: {{ template "supabase.auth.email.paths.recovery" . }}          
+        - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
+          value: {{ template "supabase.auth.email.paths.change" . }}
+{{- end }}          
+        - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+          value: "{{ .Values.auth.phone.enabled | toString }}"
+{{- if .Values.auth.phone.enabled }} 
+        - name: GOTRUE_SMS_AUTOCONFIRM
+          value: "{{ .Values.auth.phone.autoConfirm | default false | toString }}"         
+{{- end }}          
+        ports:
+        - name: http
+          containerPort: 9999
+          protocol: TCP
+{{- if .Values.auth.resources }}
+        resources:
+{{ toYaml .Values.auth.resources | indent 10 }}
+{{- end }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1            
