@@ -58,7 +58,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: {{ include "supabase.jwt.secretRef" . }}
-              key: secret         
+              key: secret   
+        - name: PGRST_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "supabase.jwt.secretRef" . }}
+              key: secret                     
         - name: PGRST_DB_ANON_ROLE
           value: {{ .Values.rest.db.anonRole }}
         - name: PGRST_DB_SCHEMAS
