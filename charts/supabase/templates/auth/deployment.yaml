@@ -102,7 +102,7 @@ spec:
         - name: GOTRUE_SMTP_PORT
           value: "{{ .Values.auth.email.port }}"
         - name: GOTRUE_SMTP_USER
-          value: {{ .Values.auth.email.user }}
+          value: {{ .Values.auth.email.username }}
         - name: GOTRUE_SMTP_PASS
           valueFrom:
             secretKeyRef:
