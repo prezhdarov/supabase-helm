@@ -146,7 +146,11 @@ Create the name of the service account to use
 {{- end -}}
 
 {{- define "supabase.db.secretRef" -}}
-  {{- default (include "supabase.secret" .) .Values.db.internal.existingSecret }}
+  {{- if eq .Values.db.type "internal" -}}
+    {{- default (include "supabase.secret" .) .Values.db.internal.existingSecret }}
+  {{- else -}}
+    {{- default (include "supabase.secret" .) .Values.db.external.existingSecret }}
+  {{- end -}}
 {{- end -}}
 
 {{- define "supabase.studio" -}}
