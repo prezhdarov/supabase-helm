@@ -94,7 +94,11 @@ Create the name of the service account to use
 
 
 {{- define "supabase.db" -}}
-  {{- printf "%s-db" (include "supabase.fullname" .) -}}
+  {{- if eq .Values.db.type "internal" -}}
+    {{- printf "%s-db" (include "supabase.fullname" .) -}}
+  {{- else -}}
+    {{- .Values.db.external.host -}}
+  {{- end -}}    
 {{- end -}}
 
 {{- define "supabase.db.port" -}}
