@@ -30,7 +30,7 @@ db:
   internal:
     image:
       repository: supabase/postgres
-      tag: 15.1.1.78
+      tag: 15.8.1.069
     # set the service account to be used, default if left empty
     serviceAccountName: ""
     # mount the service account token
@@ -63,7 +63,7 @@ db:
 studio:
   image:
     repository: supabase/studio
-    tag: 20240923-2e3e90c
+    tag: 2025.05.05-sha-3c3fe9b
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -107,7 +107,7 @@ auth:
   enabled: true
   image:
     repository: supabase/gotrue
-    tag: v2.158.1
+    tag: v2.171.0
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -151,7 +151,7 @@ meta:
   enabled: true
   image:
     repository: supabase/postgres-meta
-    tag: v0.83.2
+    tag: v0.88.9
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -167,7 +167,7 @@ rest:
   enabled: true
   image: 
     repository: postgrest/postgrest
-    tag: v12.2.0
+    tag: v12.2.12
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -187,7 +187,7 @@ realtime:
   enabled: true
   image: 
     repository: supabase/realtime
-    tag: v2.30.34
+    tag: v2.34.47
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -218,7 +218,7 @@ functions:
   enabled: true
   image: 
     repository: supabase/edge-runtime
-    tag: v1.58.3
+    tag: v1.67.4
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token

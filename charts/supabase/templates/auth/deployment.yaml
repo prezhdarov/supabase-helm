@@ -1,3 +1,4 @@
+{{- if .Values.auth.enabled -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -150,4 +151,5 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           successThreshold: 1
-          timeoutSeconds: 1            
+          timeoutSeconds: 1     
+{{- end }}                   

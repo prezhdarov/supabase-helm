@@ -1,3 +1,4 @@
+{{- if .Values.meta.enabled -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -94,3 +95,4 @@ spec:
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 1 
+{{- end }}            

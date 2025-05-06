@@ -1,3 +1,4 @@
+{{- if .Values.meta.enabled -}}
 ---
 apiVersion: v1
 kind: Service
@@ -15,3 +16,4 @@ spec:
   selector:
 {{ include "supabase.selectorLabels" . | indent 4 }}
     app.kubernetes.io/component: meta
+{{- end }}      
